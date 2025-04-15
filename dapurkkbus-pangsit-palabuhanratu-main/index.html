@@ -1,0 +1,629 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dapurkkbus</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,300;0,400;0,700;1,700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- feather icons -->
+    <script src="https://unpkg.com/feather-icons"></script>
+    <!-- My styles -->
+    <!-- <link rel="stylesheet" href="css/style.css" /> -->
+    <style>
+      :root {
+        --primary: #a08069;
+        --bg: #010101;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        outline: none;
+        border: none;
+        text-decoration: none;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        background-color: var(--bg);
+        color: #fff;
+      }
+      /* navbar */
+
+      .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.4rem 7%;
+        background-color: rgba(1, 1, 1, 0.8);
+        border-bottom: 1px solid #513c28;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 9999;
+      }
+
+      .navbar .navbar-logo {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary);
+        font-style: italic;
+      }
+
+      .navbar .navbar-nav a {
+        color: #fff;
+        display: inline-block;
+        font-size: 1.3em;
+        margin: 0 1rem;
+      }
+
+      .navbar .navbar-nav a:hover {
+        color: var(--primary);
+      }
+
+      .navbar .navbar-nav a::after {
+        content: "";
+        display: block;
+        padding-bottom: 0.5rem;
+        border-bottom: 0.1rem solid var(--primary);
+        transform: scaleX(0);
+        -webkit-transform: scaleX(0);
+        -moz-transform: scaleX(0);
+        -ms-transform: scaleX(0);
+        -o-transform: scaleX(0);
+        transition: 0.2s linear;
+        -webkit-transition: 0.2s linear;
+        -moz-transition: 0.2s linear;
+        -ms-transition: 0.2s linear;
+        -o-transition: 0.2s linear;
+      }
+
+      .navbar .navbar-nav a:hover::after {
+        transform: scaleX(0.5);
+        -webkit-transform: scaleX(0.5);
+        -moz-transform: scaleX(0.5);
+        -ms-transform: scaleX(0.5);
+        -o-transform: scaleX(0.5);
+      }
+
+      .navbar .navbar-extra a {
+        color: #fff;
+        margin: 0 0.5rem;
+      }
+
+      .navbar .navbar-extra a:hover {
+        color: var(--primary);
+      }
+
+      #hamburger-menu {
+        display: none;
+      }
+      /* Hero Section */
+
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        background-image: url(../img/image.png);
+        background-position: center;
+        background-size: cover;
+        background-repeat: no-repeat;
+        /* Opsional, untuk mencegah pengulangan gambar */
+        position: relative;
+      }
+
+      .hero::after {
+        content: "";
+        display: block;
+        position: absolute;
+        width: 100%;
+        height: 30%;
+        background: linear-gradient(
+          0deg,
+          rgba(1, 1, 3, 1) 8%,
+          rgba(255, 255, 255, 0) 50%
+        );
+        bottom: 0;
+      }
+
+      .hero .content {
+        padding: 1.4rem 7%;
+        max-width: 60rem;
+      }
+
+      .hero .content h1 {
+        font-size: 4rem;
+        color: #fff;
+        text-shadow: 1px 1px 3px rgba(1, 1, 3, 0.5);
+        line-height: 1.2;
+      }
+
+      .hero .content h1 span {
+        color: #ee2626;
+      }
+
+      .hero .content p {
+        color: #ffffff;
+        font-size: 1.6rem;
+        margin-top: 1rem;
+        line-height: 1.4;
+        font-weight: 10;
+        text-shadow: 2px 2px 5px rgba(1, 1, 3, 0.9);
+      }
+
+      .hero .content .cta {
+        margin-top: 1rem;
+        display: inline-block;
+        padding: 1rem 3rem;
+        color: #fff;
+        background-color: #ee2626;
+        border-radius: 0.5rem;
+        -webkit-border-radius: 0.5rem;
+        -moz-border-radius: 0.5rem;
+        -ms-border-radius: 0.5rem;
+        -o-border-radius: 0.5rem;
+        box-shadow: 1px 1px 3px rgba(1, 1, 3, 0.5);
+      }
+      /* about section */
+
+      .about,
+      .menu,
+      .contact {
+        padding: 8rem 7% 1.4rem;
+      }
+
+      .about h2,
+      .menu h2,
+      .contact h2 {
+        text-align: center;
+        font-size: 2.6rem;
+        margin-bottom: 3rem;
+      }
+
+      .about h2 span,
+      .menu h2 span,
+      .contact span {
+        color: var(--primary);
+      }
+
+      .about .row {
+        display: flex;
+      }
+
+      .about .row .about-img {
+        flex: 1 1 45rem;
+      }
+
+      .about .row .about-img img {
+        width: 100%;
+        border-radius: 20px;
+      }
+
+      .about .row .content {
+        flex: 1 1 35rem;
+        padding: 0 1rem;
+      }
+
+      .about .row .content h3 {
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+      }
+
+      .about .row .content p {
+        margin-bottom: 0.8rem;
+        font-size: 1.4rem;
+        font-weight: 100;
+        line-height: 1.6;
+      }
+      /* menu section */
+
+      .menu h2,
+      .contact h2 {
+        margin-bottom: 1rem;
+      }
+
+      .menu p,
+      .contact p {
+        text-align: center;
+        max-width: 30rem;
+        margin: auto;
+        font-weight: 100;
+        line-height: 1.6;
+      }
+
+      .menu .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin-top: 5rem;
+        justify-content: center;
+        font-size: 10px;
+      }
+
+      .menu .row .menu-card {
+        text-align: center;
+        padding-bottom: 4rem;
+      }
+
+      .menu .row .menu-card img {
+        border-radius: 100%;
+        -webkit-border-radius: 100%;
+        -moz-border-radius: 100%;
+        -ms-border-radius: 100%;
+        -o-border-radius: 100%;
+        width: 100%;
+        height: 250;
+        padding: 1rem;
+      }
+
+      .menu .row .menu-card .menu-card-title {
+        margin: 1rem auto 0.5rem;
+      }
+      /* contact cection */
+
+      .contact .row {
+        display: flex;
+        margin-top: 2rem;
+        background-color: #222;
+      }
+
+      .contact .row .map {
+        flex: 1 1 45rem;
+        width: 100%;
+        object-fit: cover;
+      }
+
+      .contact .row form {
+        flex: 1 1 45rem;
+        padding: 5rem 2rem;
+        text-align: center;
+      }
+
+      .contact .row form .input-group {
+        display: flex;
+        align-items: center;
+        margin-top: 2rem;
+        background-color: var(--bg);
+        border: 1px solid #eee;
+        padding-left: 2rem;
+      }
+
+      .contact .row form .input-group input {
+        width: 100%;
+        padding: 2rem;
+        font-size: 1.7rem;
+        background: none;
+        color: #fff;
+      }
+
+      .contact .row form .btn {
+        margin-top: 3rem;
+        display: inline-block;
+        padding: 1rem 3rem;
+        font-size: 1.7rem;
+        color: #fff;
+        background-color: var(--primary);
+        cursor: pointer;
+      }
+      /* footer  */
+
+      footer {
+        background-color: var(--primary);
+        text-align: center;
+        padding: 1rem 0;
+        margin-top: 3rem;
+      }
+
+      footer .socials {
+        padding: 1rem 0;
+      }
+
+      footer .socials a {
+        color: #fff;
+        margin: 1rem;
+      }
+
+      footer .socials a:hover,
+      footer .links a:hover {
+        color: var(--bg);
+      }
+
+      footer .links {
+        margin-bottom: 1.4rem;
+      }
+
+      footer .links a {
+        color: #fff;
+        padding: 0.7rem 1rem;
+      }
+
+      footer .credit {
+        font-size: 0.8rem;
+      }
+
+      footer .credit a {
+        color: var(--bg);
+        font-weight: 700;
+      }
+      /* media queoris */
+      /* Laptop */
+
+      @media screen and (max-width: 1366px) {
+        html {
+          font-size: 75%;
+        }
+      }
+      /* Tablet */
+
+      @media screen and (max-width: 768px) {
+        html {
+          font-size: 62.5%;
+        }
+        #hamburger-menu {
+          display: inline-block;
+        }
+        .navbar .navbar-nav {
+          position: absolute;
+          top: 100%;
+          right: -100%;
+          background-color: #fff;
+          width: 30rem;
+          height: 100vh;
+          transition: 0.3s;
+          -webkit-transition: 0.3s;
+          -moz-transition: 0.3s;
+          -ms-transition: 0.3s;
+          -o-transition: 0.3s;
+        }
+        .navbar .navbar-nav.active {
+          right: 0;
+        }
+        .navbar .navbar-nav a {
+          color: var(--bg);
+          display: block;
+          margin: 1.5rem;
+          padding: 0.5rem;
+          font-size: 2rem;
+        }
+        .navbar .navbar-nav a::after {
+          transform-origin: 0 0;
+        }
+        .navbar .navbar-nav a:hover::after {
+          transform: scaleX(0.2);
+        }
+        .about .row {
+          flex-wrap: wrap;
+        }
+        .about .row .about-img img {
+          height: 24rem;
+          object-fit: cover;
+          object-position: center;
+          position: relative;
+        }
+        .about .row .content {
+          padding: 0;
+        }
+        .about .row .content h3 {
+          margin-top: 1rem;
+          font-size: 2rem;
+        }
+        .about .row .content p {
+          font-size: 1.6rem;
+        }
+        .menu p {
+          font-size: 1.2rem;
+        }
+        .contact .row {
+          flex-wrap: wrap;
+        }
+        .contact .row .map {
+          height: 40rem;
+        }
+        .contact .row form {
+          padding-top: 0;
+        }
+      }
+      /* Mobile Phone */
+
+      @media screen and (max-width: 450px) {
+        html {
+          font-size: 55%;
+        }
+      }
+    </style>
+    <!-- My Javascript -->
+  </head>
+
+  <body>
+    <!-- Navbar start -->
+    <nav class="navbar">
+      <a href="#" class="navbar-logo"><span>Dapurkkbus</span>.</a>
+      <div class="navbar-nav">
+        <a href="#home">Home</a>
+        <a href="#about">Tentang Kami</a>
+        <a href="#menu">Menu</a>
+        <a href="#">Kontak</a>
+      </div>
+      <div class="navbar-extra">
+        <a href="#" id="search"> <i data-feather="search"></i> </a>
+        <a href="#" id="shopping-cart">
+          <i data-feather="shopping-cart"></i>
+        </a>
+        <a href="#" id="hamburger-menu">
+          <i data-feather="menu"></i>
+        </a>
+      </div>
+    </nav>
+    <!-- Navbar end -->
+    <section class="hero" id="home">
+      <main class="content">
+        <h1>Nikmati Lezatnya <span>Pangsit</span> Khas Nusantara</h1>
+        <p>
+          Kelezatan dalam setiap lipatan, cita <br />
+          rasa yang memanjakan lidah.
+        </p>
+        <a href="#" class="cta">Beli Sekarang</a>
+      </main>
+    </section>
+
+    <!-- feather icons -->
+    <!-- about section start -->
+    <section id="about" class="about">
+      <h2><span>Tentang</span> Kami</h2>
+      <div class="row">
+        <div class="about-img">
+          <img src="img/about2.png" alt="Tentang kami" />
+        </div>
+        <div class="content">
+          <h3>Kenapa memilih pangsit kami?</h3>
+          <p>
+            Baik untuk makan siang, snack sore, atau sajian di acara spesial,
+            pangsit kami selalu menjadi pilihan tepat. Nikmati kelezatan pangsit
+            kami kapan saja dan di mana saja.
+          </p>
+          <p>
+            Setiap pangsit kami dibuat dengan bahan-bahan segar yang dipilih
+            dengan hati-hati. Kami selalu memastikan kebersihan dan kualitas
+            terbaik untuk kenyamanan dan kepuasanmu.
+          </p>
+        </div>
+      </div>
+    </section>
+    <!-- about section end -->
+    <section id="menu" class="menu">
+      <h2><span>Menu</span> Kami</h2>
+      <p>
+        Kenikmatan tak terbantahkan dalam setiap gigitan. Pangsit kami dibuat
+        dengan bahan-bahan pilihan yang segar dan berkualitas, diolah dengan
+        teknik yang sempurna untuk menghasilkan tekstur yang lembut dan isian
+        yang lezat. Dipadukan dengan saus chili oil yang pedas dan gurih,
+        menciptakan sensasi rasa yang menggoda selera. Cocok dinikmati kapan
+        saja, Pangsit Chili Oil kami siap membawa pengalaman kuliner yang
+        memuaskan!
+      </p>
+      <div class="row">
+        <div class="menu-card">
+          <img src="img/pangsit oil.jpeg" alt="Pangsit chili oil" />
+          <h3 class="menu-card-title">- Pangsit Chili Oil -</h3>
+          <p class="menu-card-price">IDR 12K</p>
+        </div>
+
+        <!-- Kartu menu kedua -->
+        <div class="menu-card">
+          <img src="img/pangsit oil.jpeg" alt="Pangsit chili oil" />
+          <h3 class="menu-card-title">- Pangsit Chili Oil -</h3>
+          <p class="menu-card-price">IDR 12K</p>
+        </div>
+        <!-- Kartu menu kedua -->
+        <div class="menu-card">
+          <img src="img/pangsit oil.jpeg" alt="Pangsit chili oil" />
+          <h3 class="menu-card-title">- Pangsit Chili Oil -</h3>
+          <p class="menu-card-price">IDR 12K</p>
+        </div>
+        <!-- Kartu menu kedua -->
+        <div class="menu-card">
+          <img src="img/pangsit oil.jpeg" alt="Pangsit chili oil" />
+          <h3 class="menu-card-title">- Pangsit Chili Oil -</h3>
+          <p class="menu-card-price">IDR 12K</p>
+        </div>
+        <div class="menu-card">
+          <img src="img/pangsit oil.jpeg" alt="Pangsit chili oil" />
+          <h3 class="menu-card-title">- Pangsit Chili Oil -</h3>
+          <p class="menu-card-price">IDR 12K</p>
+        </div>
+        <div class="menu-card">
+          <img src="img/pangsit oil.jpeg" alt="Pangsit chili oil" />
+          <h3 class="menu-card-title">- Pangsit Chili Oil -</h3>
+          <p class="menu-card-price">IDR 12K</p>
+        </div>
+      </div>
+    </section>
+    <!-- menu section end -->
+
+    <!-- contact section start -->
+
+    <section id="contact" class="contact">
+      <h2><span>Menu</span> Kami</h2>
+      <p>
+        Kenikmatan tak terbantahkan dalam setiap gigitan. Pangsit kami dibuat
+        dengan bahan-bahan pilihan yang segar dan berkualitas, diolah dengan
+        teknik yang sempurna untuk menghasilkan tekstur yang lembut dan isian
+        yang lezat. Dipadukan dengan saus chili oil yang pedas dan gurih,
+        menciptakan sensasi rasa yang menggoda selera. Cocok dinikmati kapan
+        saja, Pangsit Chili Oil kami siap membawa pengalaman kuliner yang
+        memuaskan!
+      </p>
+
+      <div class="row">
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d31680.737470453216!2d106.53159539748013!3d-6.998425050297079!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e68279a00c28295%3A0x2da4e3ccbb0fdb6e!2sPelabuhanratu%2C%20Kec.%20Pelabuhanratu%2C%20Kabupaten%20Sukabumi%2C%20Jawa%20Barat!5e0!3m2!1sid!2sid!4v1730016457346!5m2!1sid!2sid"
+          allowfullscreen=""
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          class="map"
+        ></iframe>
+
+        <form action="">
+          <div class="input-group">
+            <i data-feather="user"></i>
+            <input type="text" placeholder="nama" />
+          </div>
+          <div class="input-group">
+            <i data-feather="mail"></i>
+            <input type="text" placeholder="email" />
+          </div>
+          <div class="input-group">
+            <i data-feather="phone"></i>
+            <input type="text" placeholder="no hp" />
+          </div>
+          <button type="submit" class="btn">kirim pesan</button>
+        </form>
+      </div>
+    </section>
+    <!-- contact section end -->
+    <!-- footer start  -->
+    <footer>
+      <div class="socials">
+        <a href="#"><i data-feather="instagram"> </i></a>
+        <a href="#"><i data-feather="twitter"> </i></a>
+        <a href="#"><i data-feather="facebook"> </i></a>
+      </div>
+      <div class="links">
+        <a href="#home">home</a>
+        <a href="#about">about</a>
+        <a href="#menu">menu</a>
+        <a href="#contact">kontak</a>
+      </div>
+      <div class="credit">
+        <p>Created by <a href="">Rendi Damara </a>. | &copy; 2024.</p>
+      </div>
+    </footer>
+    <!-- footer end -->
+    <script>
+      feather.replace();
+      //toggle class active
+      const navbarNav = document.querySelector(".navbar-nav");
+      //ketika hamburger menu di klik
+      document.querySelector("#hamburger-menu").onclick = () => {
+        navbarNav.classList.toggle("active");
+      };
+      //klik di luar sidebar untuk menghilangkan nav
+      const hamburger = document.querySelector("#hamburger-menu");
+      document.addEventListener("click", function (e) {
+        if (!hamburger.contains(e.target) && !navbarNav.contains(e.target)) {
+          navbarNav.classList.remove("active");
+        }
+      });
+    </script>
+  </body>
+</html>

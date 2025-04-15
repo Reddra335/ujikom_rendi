@@ -1,0 +1,203 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.login-container {
+  flex: 1;
+  max-width: 100%;
+  background: linear-gradient(145deg, #3d2b1f 0%, #6b4423 100%);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  order: 2;
+}
+
+.brand-logo {
+  position: relative;
+  margin-bottom: 2rem;
+  text-align: center;
+  color: #e0aa6e;
+  font-family: "Playfair Display", serif;
+  font-size: 1.8rem;
+  font-weight: 500;
+  z-index: 2;
+}
+
+.image-container {
+  flex: 1;
+  min-height: 300px;
+  background: linear-gradient(rgba(61, 43, 31, 0.5), rgba(61, 43, 31, 0.5)),
+    url("https://images.unsplash.com/photo-1585032226651-759b368d7246?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80");
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: flex-end;
+  padding: 2rem;
+  color: white;
+  order: 1;
+}
+
+.login-form {
+  color: #ffffff;
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100;
+}
+
+.login-form h2 {
+  font-size: 1.75rem;
+  margin-bottom: 1.5rem;
+  font-family: "Playfair Display", serif;
+  color: #e0aa6e;
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #e0aa6e;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #ffd700;
+}
+
+.remember-forgot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.5rem 0;
+  font-size: 0.875rem;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 1rem;
+  background: #e0aa6e;
+  border: none;
+  border-radius: 8px;
+  color: #3d2b1f;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login-btn:hover {
+  background: #ffd700;
+  transform: translateY(-2px);
+}
+
+.image-text {
+  max-width: 100%;
+}
+
+.image-text h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  font-family: "Playfair Display", serif;
+  color: #e0aa6e;
+}
+
+.image-text p {
+  font-size: 1rem;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+@media (min-width: 768px) {
+  body {
+    flex-direction: row;
+  }
+  .login-container {
+    padding: 3rem;
+    order: 1;
+    min-height: 100vh;
+  }
+  .image-container {
+    order: 2;
+    min-height: auto;
+    padding: 4rem;
+  }
+  .brand-logo {
+    position: absolute;
+    top: 3rem;
+    left: 3rem;
+    margin-bottom: 0;
+    text-align: left;
+    font-size: 2rem;
+  }
+  .login-form h2 {
+    font-size: 2.5rem;
+    text-align: left;
+  }
+  .image-text h3 {
+    font-size: 2.5rem;
+  }
+}
+
+@media (min-width: 992px) {
+  .login-form h2 {
+    font-size: 3rem;
+  }
+  .image-text h3 {
+    font-size: 3rem;
+  }
+  .image-text p {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-logo {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .login-form h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .login-container {
+    padding: 1.5rem;
+  }
+  .image-container {
+    padding: 1.5rem;
+    min-height: 250px;
+  }
+  .image-text h3 {
+    font-size: 1.25rem;
+  }
+  .image-text p {
+    font-size: 0.875rem;
+  }
+}
