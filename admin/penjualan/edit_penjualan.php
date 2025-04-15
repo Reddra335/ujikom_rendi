@@ -28,15 +28,12 @@ if (!$penjualan) {
     die("Data penjualan tidak ditemukan!");
 }
 
-// Ambil detail penjualan
-$detailPenjualan = [];
+// Ambil data detail penjualan (diasumsikan tersimpan dalam satu baris)
 $stmt = $mysqli->prepare("SELECT * FROM detailpenjualan WHERE PenjualanID = ?");
 $stmt->bind_param("i", $penjualanID);
 $stmt->execute();
 $result = $stmt->get_result();
-while ($row = $result->fetch_assoc()) {
-    $detailPenjualan[] = $row;
-}
+$detailPenjualan = $result->fetch_assoc();  // hanya ada 1 baris (data aggregate)
 $stmt->close();
 
 // Ambil data produk untuk dropdown
@@ -63,49 +60,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     $diskon = isset($_POST['diskon']) ? floatval($_POST['diskon']) : 0;
     $pajak  = isset($_POST['pajak']) ? floatval($_POST['pajak']) : 0;
     
-    // Perhitungan ulang total penjualan di sisi server
-    $sumSub = 0;
-    if (isset($_POST['subtotal']) && is_array($_POST['subtotal'])) {
-        foreach ($_POST['subtotal'] as $sub) {
-            $sumSub += floatval($sub);
+    // Ambil data detail dari form yang dikirim melalui input hidden
+    $produkIDs = isset($_POST['produk']) ? $_POST['produk'] : [];   // Array product ID
+    $jumlahs   = isset($_POST['jumlah']) ? $_POST['jumlah'] : [];       // Array jumlah per produk
+    $subtotals = isset($_POST['subtotal']) ? $_POST['subtotal'] : [];   // Array subtotal per produk
+    
+    // Agregasikan detail: hitung total kuantitas & subtotal dan gabungkan product id serta nama produk
+    $totalQuantity = 0;
+    $totalSubtotal = 0;
+    $listProductIDs = [];
+    $listProductNames = [];
+    
+    $countDetail = count($produkIDs);
+    for ($i = 0; $i < $countDetail; $i++) {
+        $prodID = intval($produkIDs[$i]);
+        $jumlahItem = isset($jumlahs[$i]) ? intval($jumlahs[$i]) : 0;
+        $subTotalItem = isset($subtotals[$i]) ? floatval($subtotals[$i]) : 0;
+        
+        $totalQuantity += $jumlahItem;
+        $totalSubtotal += $subTotalItem;
+        $listProductIDs[] = $prodID;
+        
+        // Cari nama produk dari productList
+        foreach ($productList as $prod) {
+            if ($prod['ProdukID'] == $prodID) {
+                $listProductNames[] = $prod['NamaProduk'];
+                break;
+            }
         }
     }
-    $discountAmount = ($diskon / 100) * $sumSub;
-    $subAfterDiscount = $sumSub - $discountAmount;
+    
+    // Hitung total akhir dengan diskon dan pajak
+    $discountAmount = ($diskon / 100) * $totalSubtotal;
+    $subAfterDiscount = $totalSubtotal - $discountAmount;
     $taxAmount = ($pajak / 100) * $subAfterDiscount;
     $finalTotal = $subAfterDiscount + $taxAmount;
+    
+    // Gabungkan product IDs dan nama produk menjadi string (gunakan array_unique untuk produk id)
+    $aggregatedProductIDs = implode(",", array_unique($listProductIDs));
+    $aggregatedProductNames = implode(",", $listProductNames);
     
     // Update header penjualan
     $stmt = $mysqli->prepare("UPDATE penjualan SET PelangganID = ?, diskon = ?, pajak = ? WHERE PenjualanID = ?");
     $stmt->bind_param("iddi", $pelangganIDPost, $diskon, $pajak, $penjualanID);
     $stmt->execute();
     $stmt->close();
-
+    
     // Hapus detail penjualan lama
     $stmt = $mysqli->prepare("DELETE FROM detailpenjualan WHERE PenjualanID = ?");
     $stmt->bind_param("i", $penjualanID);
     $stmt->execute();
     $stmt->close();
-
-    // Insert detail penjualan baru
-    $produkIDs = $_POST['produk'];      // array produk
-    $jumlahs   = $_POST['jumlah'];        // array jumlah tiap produk
-    $subtotals = $_POST['subtotal'];      // array subtotal tiap baris
-    $userID    = $_SESSION['user_id'];
-
-    for ($i = 0; $i < count($produkIDs); $i++) {
-        $jumlahItem = intval($jumlahs[$i]);
-        $subTotalItem = floatval($subtotals[$i]);
-
-        $stmtDet = $mysqli->prepare("INSERT INTO detailpenjualan (PenjualanID, ProdukID, user_id, JumlahProduk, Subtotal, kode_pembayaran, total_harga) VALUES (?, ?, ?, ?, ?, 0, ?)");
-        $stmtDet->bind_param("iiiidd", $penjualanID, $produkIDs[$i], $userID, $jumlahItem, $subTotalItem, $finalTotal);
-        $stmtDet->execute();
-        $stmtDet->close();
-
-        // Catatan: Penanganan update stok produk dapat ditambahkan di sini dengan
-        // mengembalikan stok dari detail lama terlebih dahulu, kemudian dikurangi sesuai detail baru.
-    }
-
+    
+    // Insert detail penjualan baru dalam satu baris (data aggregate)
+    $stmtDet = $mysqli->prepare("INSERT INTO detailpenjualan (PenjualanID, ProdukID, user_id, JumlahProduk, Subtotal, kode_pembayaran, total_harga, kembalian, barang_dibeli) VALUES (?, ?, ?, ?, ?, 0, ?, 0, ?)");
+    $userID = $_SESSION['user_id'];
+    $stmtDet->bind_param("isiidds", $penjualanID, $aggregatedProductIDs, $userID, $totalQuantity, $totalSubtotal, $finalTotal, $aggregatedProductNames);
+    $stmtDet->execute();
+    $stmtDet->close();
+    
     echo '<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -130,8 +143,13 @@ Swal.fire({
 </html>';
     exit;
 }
-?>
 
+// Untuk menampilkan form, pecah nilai detail yang tersimpan menggunakan explode dengan aman
+$detailProdukIDs = !empty($detailPenjualan['ProdukID']) ? explode(",", $detailPenjualan['ProdukID']) : [];
+$detailJumlah = !empty($detailPenjualan['JumlahProduk']) ? explode(",", $detailPenjualan['JumlahProduk']) : [];
+$detailSubtotal = !empty($detailPenjualan['Subtotal']) ? explode(",", $detailPenjualan['Subtotal']) : [];
+
+?>
 <!DOCTYPE html>
 <html lang="id">
 
@@ -265,23 +283,25 @@ Swal.fire({
                     </tr>
                 </thead>
                 <tbody>
-                    <?php 
-                    // Pre-populasi baris detail dari data yang sudah tersimpan
-                    foreach ($detailPenjualan as $detail): 
-                        // Cari data produk terkait untuk menampilkan harga dan stok
-                        $prodInfo = array_filter($productList, function($prod) use ($detail) {
-                            return $prod['ProdukID'] == $detail['ProdukID'];
-                        });
-                        $prodInfo = array_shift($prodInfo);
-                    ?>
+                    <?php if (!empty($detailProdukIDs[0])): ?>
+                    <?php foreach ($detailProdukIDs as $index => $prodID): 
+                            // Gunakan isset untuk menghindari undefined array key
+                            $jumlahVal = isset($detailJumlah[$index]) ? $detailJumlah[$index] : "0";
+                            $subtotalVal = isset($detailSubtotal[$index]) ? $detailSubtotal[$index] : "0.00";
+                            // Cari info produk dari productList
+                            $prodInfo = array_filter($productList, function($prod) use ($prodID) {
+                                return $prod['ProdukID'] == $prodID;
+                            });
+                            $prodInfo = !empty($prodInfo) ? array_shift($prodInfo) : [];
+                        ?>
                     <tr>
                         <td>
                             <select class="form-control" onchange="updateRow(this)">
                                 <option value="">Pilih Produk</option>
-                                <?php foreach($productList as $prod): ?>
+                                <?php foreach ($productList as $prod): ?>
                                 <option value="<?= $prod['ProdukID'] ?>" data-harga="<?= $prod['Harga'] ?>"
                                     data-stok="<?= $prod['Stok'] ?>"
-                                    <?= ($detail['ProdukID'] == $prod['ProdukID'] ? 'selected' : '') ?>>
+                                    <?= ($prodID == $prod['ProdukID'] ? 'selected' : '') ?>>
                                     <?= htmlspecialchars($prod['NamaProduk']) ?>
                                 </option>
                                 <?php endforeach; ?>
@@ -296,18 +316,23 @@ Swal.fire({
                                 value="<?= isset($prodInfo['Stok']) ? $prodInfo['Stok'] : '0' ?>">
                         </td>
                         <td>
-                            <input type="number" class="form-control" value="<?= $detail['JumlahProduk'] ?>" min="0"
-                                onchange="updateRow(this)">
+                            <input type="number" class="form-control" value="<?= htmlspecialchars($jumlahVal) ?>"
+                                min="0" onchange="updateRow(this)">
                         </td>
                         <td>
                             <input type="text" class="form-control" readonly
-                                value="<?= number_format($detail['Subtotal'], 2) ?>">
+                                value="<?= number_format($subtotalVal, 2) ?>">
                         </td>
                         <td>
                             <button type="button" onclick="removeRow(this)">Hapus</button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
+                    <?php else: ?>
+                    <tr>
+                        <td colspan="6">Tidak ada detail penjualan</td>
+                    </tr>
+                    <?php endif; ?>
                 </tbody>
             </table>
             <button type="button" class="btn-primary btn-add" onclick="addRow()">Tambah Barang</button>
@@ -323,7 +348,7 @@ Swal.fire({
             <input type="hidden" name="pajak" id="hiddenPajak">
             <input type="hidden" name="total_penjualan" id="hiddenTotal">
 
-            <!-- Tempat menyimpan input detail secara hidden -->
+            <!-- Tempat untuk menyimpan input detail secara hidden -->
             <div id="detailInputs"></div>
 
             <button type="submit" name="submit" class="btn-primary">Simpan Perubahan</button>
@@ -334,7 +359,7 @@ Swal.fire({
     <script>
     const products = <?php echo json_encode($productList); ?>;
 
-    // Fungsi menambahkan baris detail baru
+    // Fungsi untuk menambahkan baris detail baru
     function addRow() {
         const tbody = document.querySelector("#detailTable tbody");
         const row = document.createElement("tr");
@@ -364,7 +389,7 @@ Swal.fire({
         // Cell: Jumlah
         const cellJumlah = document.createElement("td");
         cellJumlah.innerHTML =
-            `<input type="number" class="form-control" value="0" min="0" onchange="updateRow(this)">`;
+        `<input type="number" class="form-control" value="0" min="0" onchange="updateRow(this)">`;
         row.appendChild(cellJumlah);
 
         // Cell: Subtotal
@@ -440,13 +465,12 @@ Swal.fire({
         const totalAkhir = total - nilaiDiskon + nilaiPajak;
 
         document.getElementById("totalPenjualan").value = totalAkhir.toFixed(2);
-        // Hidden field menyimpan nilai diskon dan pajak dalam bentuk rupiah (agar konsisten dengan perhitungan server)
         document.getElementById("hiddenDiskon").value = nilaiDiskon.toFixed(2);
         document.getElementById("hiddenPajak").value = nilaiPajak.toFixed(2);
         document.getElementById("hiddenTotal").value = totalAkhir.toFixed(2);
     }
 
-    // Perbarui kalkulasi saat diskon atau pajak diubah
+    // Update kalkulasi saat diskon atau pajak berubah
     document.getElementById("diskonInput").addEventListener("input", calculateTotal);
     document.getElementById("pajakInput").addEventListener("input", calculateTotal);
 
@@ -468,7 +492,6 @@ Swal.fire({
 
     window.onload = calculateTotal;
     </script>
-    <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
 

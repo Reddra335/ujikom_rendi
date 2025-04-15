@@ -39,17 +39,23 @@ if ($resultPelanggan) {
 $message   = "";
 $isSuccess = false;
 
+// Mapping ProdukID ke NamaProduk (memudahkan pengambilan nama produk)
+$productNames = array();
+foreach ($productList as $prod) {
+    $productNames[$prod['ProdukID']] = $prod['NamaProduk'];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
 
     // Header penjualan
     $pelangganID = (isset($_POST['pelanggan']) && $_POST['pelanggan'] !== "") ? intval($_POST['pelanggan']) : NULL;
     $invoice = "INV" . time();
     
-    // Nilai diskon dan pajak dikirim dari form (dalam persen)
+    // Nilai diskon dan pajak (dalam persen)
     $diskon = isset($_POST['diskon']) ? floatval($_POST['diskon']) : 0;
     $pajak  = isset($_POST['pajak']) ? floatval($_POST['pajak']) : 0;
     
-    // Hitung total subtotal dari masing-masing detail (nilai subtotal dikirim oleh client)
+    // Hitung total subtotal dari masing-masing detail (nilai subtotal dikirim dari form)
     $sumSub = 0;
     if (isset($_POST['subtotal']) && is_array($_POST['subtotal'])) {
         foreach ($_POST['subtotal'] as $sub) {
@@ -62,9 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     $subAfterDiscount = $sumSub - $discountAmount;
     $taxAmount        = ($pajak / 100) * $subAfterDiscount;
     $finalTotal       = $subAfterDiscount + $taxAmount;
-    // Jika perlu, Anda dapat melakukan pembulatan atau casting ke integer
-    // $finalTotal = (int) round($finalTotal);
-
+    
     // Simpan header penjualan ke tabel penjualan
     $stmt = $mysqli->prepare("INSERT INTO penjualan (TanggalPenjualan, tgl_bayar, PelangganID, status_bayar, invoice, diskon, pajak) VALUES (NOW(), NULL, ?, 'belum dibayar', ?, ?, ?)");
     if ($stmt) {
@@ -72,61 +76,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         if ($stmt->execute()) {
             $penjualanID = $mysqli->insert_id;
             
-            // Ambil data produk, jumlah, subtotal yang dikirim dari form.
+            // Ambil data produk, jumlah, subtotal yang dikirim dari form
             $produkIDs = isset($_POST['produk']) ? $_POST['produk'] : [];
             $jumlahs   = isset($_POST['jumlah']) ? $_POST['jumlah'] : [];
             $subtotals = isset($_POST['subtotal']) ? $_POST['subtotal'] : [];
             
-            // Agregasi data detail berdasarkan ProdukID.
-            $aggregatedDetails = [];
+            // Variabel untuk meng-aggregate detail transaksi
+            $totalQuantity   = 0;
+            $totalSubtotal   = 0;
+            $listNamaBarang  = [];
+            $listProductId   = [];  // untuk menyimpan nilai produk id
             $userID = $_SESSION['user_id'];
+            
+            // Loop tiap produk yang dipilih
             for ($i = 0; $i < count($produkIDs); $i++) {
                 $prodID = intval($produkIDs[$i]);
                 $jumlahItem   = intval($jumlahs[$i]);
                 $subTotalItem = floatval($subtotals[$i]);
                 
-                if (isset($aggregatedDetails[$prodID])) {
-                    $aggregatedDetails[$prodID]['jumlah'] += $jumlahItem;
-                    $aggregatedDetails[$prodID]['subtotal'] += $subTotalItem;
-                } else {
-                    $aggregatedDetails[$prodID] = [
-                        'user_id'  => $userID,
-                        'jumlah'   => $jumlahItem,
-                        'subtotal' => $subTotalItem
-                    ];
+                $totalQuantity += $jumlahItem;
+                $totalSubtotal += $subTotalItem;
+                
+                // Dapatkan nama produk dan simpan ke list (jika belum ada)
+                if(isset($productNames[$prodID])) {
+                    $listNamaBarang[] = $productNames[$prodID];
+                }
+                
+                // Simpan product id ke list (gunakan distinct, misal pakai array_unique nanti)
+                $listProductId[] = $prodID;
+                
+                // Update stok produk: kurangi stok sesuai jumlah yang terjual
+                $updateStock = $mysqli->prepare("UPDATE produk SET Stok = Stok - ? WHERE ProdukID = ?");
+                if ($updateStock) {
+                    $updateStock->bind_param("ii", $jumlahItem, $prodID);
+                    $updateStock->execute();
+                    $updateStock->close();
                 }
             }
-            
-            /* 
-            // Debug aggregator (jika perlu cek hasilnya)
-            echo "<pre>";
-            print_r($aggregatedDetails);
-            echo "</pre>";
-            die();
-            */
-            
-            // Lakukan insert ke tabel detailpenjualan satu kali per ProdukID.
-            foreach ($aggregatedDetails as $prodID => $data) {
-                // INSERT statement disesuaikan dengan field tabel detailpenjualan.
-                // Field kode_pembayaran diset 0, total_harga diisi dengan finalTotal,
-                // dan kembalian diset 0 (default) jika belum ada perhitungan.
-                $stmtDet = $mysqli->prepare("INSERT INTO detailpenjualan (PenjualanID, ProdukID, user_id, JumlahProduk, Subtotal, kode_pembayaran, total_harga, kembalian) VALUES (?, ?, ?, ?, ?, 0, ?, ?)");
-                if ($stmtDet) {
-                    // Menggunakan tipe binding "iiiiddi": 4 integer, 1 integer, 2 double
-                    $stmtDet->bind_param("iiiiddi", $penjualanID, $prodID, $data['user_id'], $data['jumlah'], $data['subtotal'], $finalTotal, $dummyKembalian);
-                    // Kita set kembalian = 0 saat insert
-                    $dummyKembalian = 0;
-                    $stmtDet->execute();
-                    $stmtDet->close();
-                    
-                    // Update stok produk: kurangi stok sesuai total jumlah yang terjual
-                    $updateStock = $mysqli->prepare("UPDATE produk SET Stok = Stok - ? WHERE ProdukID = ?");
-                    if ($updateStock) {
-                        $updateStock->bind_param("ii", $data['jumlah'], $prodID);
-                        $updateStock->execute();
-                        $updateStock->close();
-                    }
-                }
+            // Gabungkan nama produk dan product id menjadi string terpisah dengan koma.
+            $allProductNames = implode(",", $listNamaBarang);
+            // Gunakan array_unique agar setiap produk hanya muncul sekali
+            $aggregatedProductIds = implode(",", array_unique($listProductId));
+
+            /*
+             * Karena kita menginginkan satu baris detail untuk keseluruhan transaksi,
+             * kita memasukkan nilai gabungan product id (seperti "72,70") ke kolom ProdukID,
+             * serta total jumlah, subtotal, dan daftar nama produk ke kolom barang_dibeli.
+             * Pastikan pada database, kolom ProdukID di tabel detailpenjualan telah diubah tipenya (misalnya ke VARCHAR)
+             * agar dapat menyimpan nilai gabungan.
+             */
+            $stmtDet = $mysqli->prepare("INSERT INTO detailpenjualan (PenjualanID, ProdukID, user_id, JumlahProduk, Subtotal, kode_pembayaran, total_harga, kembalian, barang_dibeli) VALUES (?, ?, ?, ?, ?, 0, ?, 0, ?)");
+            if ($stmtDet) {
+                // Binding parameter:
+                // PenjualanID (i), ProdukID (s, aggregated string), user_id (i), JumlahProduk (i), Subtotal (d), total_harga (d), barang_dibeli (s)
+                $stmtDet->bind_param("isiidds", $penjualanID, $aggregatedProductIds, $userID, $totalQuantity, $totalSubtotal, $finalTotal, $allProductNames);
+                $stmtDet->execute();
+                $stmtDet->close();
             }
             $stmt->close();
             $isSuccess = true;
@@ -208,7 +213,11 @@ Swal.fire({
     }
 
     .content-card {
-        width: 100%;
+        width: 90%;
+        max-width: 800px;
+        margin: 30px auto;
+        background: #fff;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         padding: 20px;
         box-sizing: border-box;
     }
@@ -287,14 +296,16 @@ Swal.fire({
                     <?php endforeach; ?>
                 </select>
             </div>
-            <!-- Input Diskon & Pajak (dihitung otomatis oleh JavaScript) -->
+            <!-- Input Diskon & Pajak -->
             <div class="form-group">
                 <label class="form-label">Diskon (%)</label>
-                <input type="number" id="diskonInput" class="form-control" value="0" step="0.01">
+                <input type="number" name="diskon" id="diskon" class="form-control" value="0" step="0.01" min="0"
+                    max="100">
             </div>
             <div class="form-group">
                 <label class="form-label">Pajak (%)</label>
-                <input type="number" id="pajakInput" class="form-control" value="0" step="0.01">
+                <input type="number" name="pajak" id="pajak" class="form-control" value="0" step="0.01" min="0"
+                    max="100">
             </div>
             <!-- Tabel Detail Penjualan -->
             <table id="detailTable">
@@ -312,17 +323,13 @@ Swal.fire({
                     <!-- Baris detail akan ditambahkan secara dinamis -->
                 </tbody>
             </table>
-            <button type="button" class="btn-primary btn-add" onclick="addRow()">Tambah Barang</button>
+            <button type="button" class="btn-primary" onclick="addRow()">Tambah Barang</button>
             <!-- Total Penjualan -->
             <div class="form-group" style="margin-top:20px;">
                 <label class="form-label">Total Penjualan</label>
                 <input type="text" id="totalPenjualan" class="form-control" readonly value="0">
             </div>
-            <!-- Hidden Fields untuk Diskon, Pajak, dan Total -->
-            <input type="hidden" name="diskon" id="hiddenDiskon">
-            <input type="hidden" name="pajak" id="hiddenPajak">
-            <input type="hidden" name="total_penjualan" id="hiddenTotal">
-            <!-- Tempat untuk menyimpan detail item secara hidden -->
+            <!-- Input hidden untuk menyimpan detail item -->
             <div id="detailInputs"></div>
             <button type="submit" name="submit" class="btn-primary" style="margin-top:20px;">Simpan Penjualan</button>
             <!-- Tombol Kembali -->
@@ -343,7 +350,7 @@ Swal.fire({
         // Cell: Dropdown Produk
         const cellProduk = document.createElement("td");
         let selectHtml = `<select class="form-control" onchange="updateRow(this)">
-                                    <option value="">Pilih Produk</option>`;
+                                <option value="">Pilih Produk</option>`;
         products.forEach(prod => {
             selectHtml +=
                 `<option value="${prod.ProdukID}" data-harga="${prod.Harga}" data-stok="${prod.Stok}">${prod.NamaProduk}</option>`;
@@ -365,7 +372,7 @@ Swal.fire({
         // Cell: Jumlah
         const cellJumlah = document.createElement("td");
         cellJumlah.innerHTML =
-            `<input type="number" class="form-control" value="0" min="0" onchange="updateRow(this)">`;
+        `<input type="number" class="form-control" value="0" min="0" onchange="updateRow(this)">`;
         row.appendChild(cellJumlah);
 
         // Cell: Subtotal
@@ -445,22 +452,19 @@ Swal.fire({
             const rowSubtotal = parseFloat(row.children[4].querySelector("input").value) || 0;
             subTotal += rowSubtotal;
         });
-        let discountPercent = parseFloat(document.getElementById("diskonInput").value) || 0;
-        let taxPercent = parseFloat(document.getElementById("pajakInput").value) || 0;
+        let discountPercent = parseFloat(document.getElementById("diskon").value) || 0;
+        let taxPercent = parseFloat(document.getElementById("pajak").value) || 0;
         let discountAmount = (discountPercent / 100) * subTotal;
         let subTotalAfterDiscount = subTotal - discountAmount;
         let taxAmount = (taxPercent / 100) * subTotalAfterDiscount;
         let finalTotal = subTotalAfterDiscount + taxAmount;
 
         document.getElementById("totalPenjualan").value = finalTotal.toFixed(2);
-        document.getElementById("hiddenTotal").value = finalTotal.toFixed(2);
-        document.getElementById("hiddenDiskon").value = discountPercent;
-        document.getElementById("hiddenPajak").value = taxPercent;
     }
 
-    // Update perhitungan saat diskon atau pajak diubah
-    document.getElementById("diskonInput").addEventListener("input", calculateTotal);
-    document.getElementById("pajakInput").addEventListener("input", calculateTotal);
+    // Update perhitungan saat diskon atau pajak berubah
+    document.getElementById("diskon").addEventListener("input", calculateTotal);
+    document.getElementById("pajak").addEventListener("input", calculateTotal);
 
     // Validasi form dan kumpulkan data detail sebelum submit
     document.getElementById("penjualanForm").addEventListener("submit", function(e) {
@@ -519,13 +523,12 @@ Swal.fire({
                         `<input type="hidden" name="produk[]" value="${select.value}">`;
                     detailDiv.innerHTML += `<input type="hidden" name="jumlah[]" value="${jumlah}">`;
                     detailDiv.innerHTML +=
-                        `<input type="hidden" name="subtotal[]" value="${subtotal}">`;
+                    `<input type="hidden" name="subtotal[]" value="${subtotal}">`;
                 }
             }
         });
     });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
 
 </html>

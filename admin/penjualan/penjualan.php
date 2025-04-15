@@ -28,7 +28,6 @@ $where_conditions = [];
 $params = [];
 $param_types = "";
 
-// Filter tahun, bulan, dan tanggal
 if ($tahun !== "") {
     $where_conditions[] = "YEAR(p.TanggalPenjualan) = ?";
     $params[] = $tahun;
@@ -45,44 +44,41 @@ if ($tanggal !== "") {
     $param_types .= "i";
 }
 
-// Filter pelanggan
 if ($pelanggan_filter !== "") {
     $where_conditions[] = "pel.PelangganID = ?";
     $params[] = $pelanggan_filter;
     $param_types .= "i";
 }
-// Filter pencarian invoice
 if ($search !== "") {
     $where_conditions[] = "p.invoice LIKE ?";
     $params[] = "%" . $search . "%";
     $param_types .= "s";
 }
+
 $where_clause = (count($where_conditions) > 0) ? "WHERE " . implode(" AND ", $where_conditions) : "";
 
-// Pagination
+// Pagination setup
 $results_per_page = 5;
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $page = ($page < 1) ? 1 : $page;
 $start_from = ($page - 1) * $results_per_page;
 
-// Query data utama dengan pagination
+// Query utama untuk mengambil data penjualan
 $query = "SELECT 
             p.PenjualanID, 
             p.invoice, 
             p.TanggalPenjualan, 
             pel.NamaPelanggan,
-            IFNULL(MAX(dp.total_harga), 0) AS Total_Harga,
-            GROUP_CONCAT(prod.NamaProduk SEPARATOR ', ') AS Produk_Dibeli
+            dp.total_harga AS Total_Harga,
+            dp.barang_dibeli AS Produk_Dibeli
           FROM penjualan p
           LEFT JOIN pelanggan pel ON p.PelangganID = pel.PelangganID
           LEFT JOIN detailpenjualan dp ON p.PenjualanID = dp.PenjualanID
-          LEFT JOIN produk prod ON dp.ProdukID = prod.ProdukID
           $where_clause
-          GROUP BY p.PenjualanID
           ORDER BY p.PenjualanID DESC
           LIMIT ?, ?";
 
-// Copy parameter array untuk query utama
+// Salin parameter untuk query utama
 $params_for_query = $params;
 $params_for_query[] = $start_from;
 $params_for_query[] = $results_per_page;
@@ -90,7 +86,7 @@ $param_types_for_query = $param_types . "ii";
 
 $stmt = $koneksi->prepare($query);
 if ($stmt) {
-    if ($params_for_query) {
+    if (!empty($params_for_query)) {
         $stmt->bind_param($param_types_for_query, ...$params_for_query);
     }
     $stmt->execute();
@@ -99,7 +95,7 @@ if ($stmt) {
     die("Query error: " . $koneksi->error);
 }
 
-// Hitung total halaman tanpa LIMIT
+// Hitung total halaman tanpa LIMIT untuk pagination
 $count_query = "SELECT COUNT(*) AS total FROM (
                     SELECT p.PenjualanID
                     FROM penjualan p
@@ -107,6 +103,7 @@ $count_query = "SELECT COUNT(*) AS total FROM (
                     $where_clause
                     GROUP BY p.PenjualanID
                 ) AS subquery";
+
 $count_stmt = $koneksi->prepare($count_query);
 if ($count_stmt) {
     if (!empty($params)) {
@@ -122,20 +119,18 @@ if ($count_stmt) {
     $total_pages = 1;
 }
 
-// Ambil semua data untuk searching client-side (mengabaikan filter pagination)
+// Ambil seluruh data untuk pencarian client-side (tanpa filter pagination)
 $allData = [];
 $sql_all = "SELECT 
               p.PenjualanID, 
               p.invoice, 
               p.TanggalPenjualan, 
               pel.NamaPelanggan,
-              IFNULL(MAX(dp.total_harga), 0) AS Total_Harga,
-              GROUP_CONCAT(prod.NamaProduk SEPARATOR ', ') AS Produk_Dibeli
+              dp.total_harga AS Total_Harga,
+              dp.barang_dibeli AS Produk_Dibeli
             FROM penjualan p
             LEFT JOIN pelanggan pel ON p.PelangganID = pel.PelangganID
             LEFT JOIN detailpenjualan dp ON p.PenjualanID = dp.PenjualanID
-            LEFT JOIN produk prod ON dp.ProdukID = prod.ProdukID
-            GROUP BY p.PenjualanID
             ORDER BY p.PenjualanID DESC";
 $result_all = $koneksi->query($sql_all);
 if ($result_all) {
@@ -369,10 +364,10 @@ if ($result_all) {
         <?php if ($total_pages > 1): ?>
         <div class="pagination">
             <?php 
-                $query_str = "tahun=" . urlencode($tahun) . "&bulan=" . urlencode($bulan) . "&tanggal=" . urlencode($tanggal);
-                $query_str .= ($pelanggan_filter !== "") ? "&pelanggan=" . urlencode($pelanggan_filter) : "";
-                $query_str .= ($search !== "") ? "&search=" . urlencode($search) : "";
-            ?>
+                    $query_str = "tahun=" . urlencode($tahun) . "&bulan=" . urlencode($bulan) . "&tanggal=" . urlencode($tanggal);
+                    $query_str .= ($pelanggan_filter !== "") ? "&pelanggan=" . urlencode($pelanggan_filter) : "";
+                    $query_str .= ($search !== "") ? "&search=" . urlencode($search) : "";
+                ?>
             <?php for ($i = 1; $i <= $total_pages; $i++): ?>
             <a href="?page=<?= $i ?>&<?= $query_str ?>" class="page-item <?= $i == $page ? 'active' : '' ?>">
                 <?= $i ?>
@@ -430,8 +425,8 @@ if ($result_all) {
                 html += '<td>' + row.invoice + '</td>';
                 var tgl = new Date(row.TanggalPenjualan);
                 html += '<td>' + tgl.toLocaleDateString("id-ID") + ' ' + tgl.toLocaleTimeString("id-ID", {
-                    hour: '2-digit',
-                    minute: '2-digit'
+                    hour: "2-digit",
+                    minute: "2-digit"
                 }) + '</td>';
                 html += '<td>' + (row.NamaPelanggan ? row.NamaPelanggan : 'Umum') + '</td>';
                 html += '<td>Rp' + parseInt(row.Total_Harga).toLocaleString('id-ID') + '</td>';
@@ -504,3 +499,4 @@ if ($result_all) {
 </body>
 
 </html>
+<?php $koneksi->close(); ?>
