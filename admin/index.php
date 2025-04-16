@@ -5,6 +5,27 @@ if (!isset($_SESSION['user_id'])) {
     header("Location: ../login.php");
     exit;
 }
+
+// Ambil data user berdasarkan session
+$user_id = intval($_SESSION['user_id']);
+$query_user = "SELECT * FROM user WHERE UserID = $user_id";
+$result_user = mysqli_query($conn, $query_user);
+if ($result_user && mysqli_num_rows($result_user) > 0) {
+    $user_info = mysqli_fetch_assoc($result_user);
+} else {
+    // Jika tidak ditemukan, gunakan data default
+    $user_info = [
+        'nama_user' => 'Unknown',
+        'role'      => 'Unknown',
+        'foto'      => ''
+    ];
+}
+
+// Jika foto kosong, gunakan placeholder
+if (empty($user_info['foto'])) {
+    $user_info['foto'] = "https://via.placeholder.com/60";
+}
+
 $current_page = $_GET['page'] ?? 'dasboard'; // Ambil parameter halaman saat ini
 
 // Tentukan path file child page berdasarkan parameter
@@ -44,7 +65,7 @@ switch ($current_page) {
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Royal Dumpling - Admin</title>
+    <title>Admin</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Poppins:wght@300;500;600;700&display=swap"
         rel="stylesheet" />
@@ -214,7 +235,7 @@ switch ($current_page) {
         transition: transform 0.3s ease;
     }
 
-    /* Container khusus untuk child page: menggunakan iframe untuk isolasi */
+    /* Container untuk child page menggunakan iframe */
     .child-content {
         width: 100%;
         height: calc(100vh - 100px);
@@ -324,7 +345,7 @@ switch ($current_page) {
     <!-- Navbar -->
     <nav class="navbar">
         <div></div>
-        <div class="brand-title">Dpprkubus.</div>
+        <div class="brand-title">Dapurkkbus.</div>
         <div class="menu-toggle">
             <i class="fas fa-bars"></i>
         </div>
@@ -333,10 +354,12 @@ switch ($current_page) {
     <!-- Sidebar -->
     <aside class="sidebar glass-panel">
         <div class="admin-profile">
-            <img src="https://via.placeholder.com/60" alt="Admin Profile">
+            <!-- Pastikan path ke file foto sesuai, misalnya: pengguna/uploads/ -->
+            <img src="pengguna/<?= htmlspecialchars($user_info['foto']); ?>"
+                alt="<?= htmlspecialchars($user_info['nama_user']); ?>">
             <div class="admin-info">
-                <h3>John Doe</h3>
-                <p>Administrator</p>
+                <h3><?= htmlspecialchars($user_info['nama_user']); ?></h3>
+                <p><?= htmlspecialchars($user_info['role']); ?></p>
             </div>
         </div>
         <ul class="sidebar-menu">
@@ -411,7 +434,7 @@ switch ($current_page) {
     <!-- Main Content -->
     <main class="main-content">
         <!-- Memuat child page ke dalam iframe untuk isolasi tampilan -->
-        <iframe class="child-content" src="<?= $childFile; ?>" frameborder="0"></iframe>
+        <iframe class="child-content" src="<?= htmlspecialchars($childFile); ?>" frameborder="0"></iframe>
     </main>
 
     <script>
@@ -429,9 +452,7 @@ switch ($current_page) {
 
     // Close sidebar pada resolusi kecil
     document.addEventListener('click', (e) => {
-        if (window.innerWidth <= 992 &&
-            !sidebar.contains(e.target) &&
-            !menuToggle.contains(e.target)) {
+        if (window.innerWidth <= 992 && !sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
             sidebar.classList.remove('active');
             icon.classList.remove('fa-times');
             icon.classList.add('fa-bars');

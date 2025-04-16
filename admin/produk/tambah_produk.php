@@ -144,6 +144,8 @@ Swal.fire({
   timer: 2000,
   showConfirmButton: false,
   timerProgressBar: true
+}).then(function() {
+  window.location.href = "produk.php";
 });
 </script>
 </body>

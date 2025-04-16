@@ -2,13 +2,25 @@
 session_start();
 require_once 'dist/koneksi.php';
 
-// Jika session sudah ada, langsung alihkan
+// Jika session sudah ada, langsung alihkan berdasarkan peran
 if (isset($_SESSION['user_id'])) {
-    header("Location: admin/index.php");
+    switch ($_SESSION['role']) {
+        case 'admin':
+            header("Location: admin/index.php");
+            break;
+        case 'kasir':
+            header("Location: kasir/index.php");
+            break;
+        case 'owner':
+            header("Location: owner/index.php");
+            break;
+        default:
+            header("Location: index.php");
+    }
     exit;
 }
 
-// Cek cookie "remember me" jika tidak ada session
+// Cek cookie "remember me" jika session belum ada
 if (isset($_COOKIE['rememberme'])) {
     $token = $_COOKIE['rememberme'];
     $stmt = $conn->prepare("SELECT * FROM user WHERE remember_token = ?");
@@ -17,10 +29,22 @@ if (isset($_COOKIE['rememberme'])) {
     $result = $stmt->get_result();
     if ($result->num_rows == 1) {
         $user = $result->fetch_assoc();
-        // Set session dan alihkan
+        // Set session dan alihkan berdasarkan role
         $_SESSION['user_id'] = $user['UserID'];
         $_SESSION['role'] = $user['role'];
-        header("Location: admin/index.php");
+        switch ($_SESSION['role']) {
+            case 'admin':
+                header("Location: admin/index.php");
+                break;
+            case 'kasir':
+                header("Location: kasir/index.php");
+                break;
+            case 'owner':
+                header("Location: owner/index.php");
+                break;
+            default:
+                header("Location: login.php");
+        }
         exit;
     }
 }
@@ -36,7 +60,6 @@ if (isset($_COOKIE['rememberme'])) {
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&family=Poppins:wght@300;500;600&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/login.css">
-
 </head>
 
 <body>
@@ -44,6 +67,13 @@ if (isset($_COOKIE['rememberme'])) {
         <div class="brand-logo">Dapurkkbus.</div>
         <div class="login-form">
             <h2>Selamat Datang</h2>
+            <!-- Tampilkan pesan error jika ada -->
+            <?php
+            if (isset($_SESSION['error'])) {
+                echo '<p class="error">'.htmlspecialchars($_SESSION['error']).'</p>';
+                unset($_SESSION['error']);
+            }
+            ?>
             <form action="proses_login.php" method="post">
                 <div class="form-group">
                     <input type="text" autocomplete="off" placeholder="Username" name="username" required>
@@ -56,7 +86,7 @@ if (isset($_COOKIE['rememberme'])) {
                         <input type="checkbox" name="remember">
                         Remember Me
                     </label>
-                    <a href="#" style="color: #E0AA6E; text-decoration: none;">Forgot Password?</a>
+
                 </div>
                 <button type="submit" class="login-btn" name="login">SIGN IN</button>
             </form>
